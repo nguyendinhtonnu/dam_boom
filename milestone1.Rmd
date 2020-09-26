@@ -1,0 +1,16 @@
+---
+title: "Milestone 1"
+author: "Tonnu"
+date: "9/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Idea for final project 
+
+Inspired by Chris Courtney's book on the 1931 flood on the Yangtze in China^[The Nature of Disaster in China: The 1931 Yangzi River Flood], I want to look into how the Red River Delta has changed over time. I'll be looking at data from the 19th to 20th century, focusing on floods in the Delta and the damages incurred, at census data, economic data as well as wider climate data in the region. The goal is to find patterns in  population growth, climatic changes, environmental impact from human activities, fluvial changes, and how all  these factors combine to exacerbate the "disaster regime" of the Red River--a collection anthropogenic factors that make natural disasters more destructive then it would be in an unregulated environment. There is a lot of historical, archeological, and meteorological research on this topic ^[example:https://www-sciencedirect-com.ezp-prod1.hul.harvard.edu/science/article/pii/S0277379103001380?via%3Dihub], but gathering the data in one place would be a challenge, but not impossible. 
+
+

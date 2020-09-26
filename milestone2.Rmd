@@ -1,0 +1,13 @@
+---
+title: "Milestone 2"
+author: "Tonnu"
+date: "9/26/2020"
+output: html_document
+---
+
+
+#Project 1: [Cian Stryker's "China and 'One Belt, One Road'" project](https://cianstryker.shinyapps.io/China_and_BRI/)
+#The pros of this project includes the excellent explanation at the home page of the maps and graphs. This provides a good introduction into the topic as well as an intuition of the scale and scope of the topic. Colour schemes and sliders are also great, but the true forte is the clarity with which Stryker organized his graphs and plots. 
+#The cons of this project are minimal, but if I had to point out one, it would be the Political Rights section.This section doesn't feel as intuitive as the other section, without knowledge in political science, it can be tough to understand why the Political Rights axis is numbered from 1 to 7. 
+
+#Project 2: [Wyatt Hurt's "Transboundary Water Conflict"](https://wyatthurt.shinyapps.io/water_conflict/)
