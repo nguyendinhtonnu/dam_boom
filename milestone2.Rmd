@@ -4,10 +4,16 @@ author: "Tonnu"
 date: "9/26/2020"
 output: html_document
 ---
-
+[My github repo](https://github.com/nguyendinhtonnu/final_project)
 
 #Project 1: [Cian Stryker's "China and 'One Belt, One Road'" project](https://cianstryker.shinyapps.io/China_and_BRI/)
+
 #The pros of this project includes the excellent explanation at the home page of the maps and graphs. This provides a good introduction into the topic as well as an intuition of the scale and scope of the topic. Colour schemes and sliders are also great, but the true forte is the clarity with which Stryker organized his graphs and plots. 
+
 #The cons of this project are minimal, but if I had to point out one, it would be the Political Rights section.This section doesn't feel as intuitive as the other section, without knowledge in political science, it can be tough to understand why the Political Rights axis is numbered from 1 to 7. 
 
 #Project 2: [Wyatt Hurt's "Transboundary Water Conflict"](https://wyatthurt.shinyapps.io/water_conflict/)
+
+#The pros of this project are the beautiful maps, intuitive plots and a clear narrative throughout. Hurt dealt with a lot of data from a variety of sources in order to come up with these maps, and judging from his Milestone records, he started as early as Milestone 3 in researching relevant data for his project. The "Predicting Water Conflict" section is an interesting model that is very thoroughly done, and the "Explore River Basins" section shows the effort put into researching and compiling information about individual conflicts. 
+
+#The only cons for this project are the uneven attention paid to different river basins. Those that are in the Middle East, which seems to be Hurt's main area of expertise, receive more attention than those in the Americas, or Southeast Asia, for example. This shows that the author could have been more exhaustive in data gathering, or note the gap in data for specific regions so as to point out a possible avenue research. The sentiment analysis seems to be coming from a rather small sample, it would be better to include documents from more international sources, such as country reports compiled by the UN, ASEAN, ARDC, etc... 
