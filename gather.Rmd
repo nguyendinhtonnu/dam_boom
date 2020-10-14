@@ -1,0 +1,39 @@
+---
+title: "gather"
+author: "Tonnu"
+date: "10/14/2020"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(janitor)
+```
+
+
+```{r}
+natural_disasters_asia <- read_excel("raw_data/emdat_public_2020_10_13_query_uid-DXK6pk.xlsx",
+    skip = 6) %>%
+  clean_names() %>%
+  select(-disaster_group, -disaster_subsubtype, -disaster_type, -disaster_subgroup, -event_name) 
+
+natural_disasters_asia %>%
+  filter(disaster_subtype %in% "Riverine flood") %>%
+  filter(associated_dis %in% "Broken Dam/Burst bank") %>%
+  group_by(year) %>%
+  mutate(freq = n()) %>%
+  ggplot(aes(year, country, size = freq)) +
+  geom_point() + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(x = "Year", y = "Country", 
+       title = "Frequency of dam breaking or bank bursting riverine flood",
+       subtitle = "From 1990 to 2015",
+       caption = "Source: Emergency Events Database") + 
+  theme_light()
+
+
+  
+
+```
+
