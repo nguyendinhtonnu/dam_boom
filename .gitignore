@@ -2,4 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
 *Rproj
+/shiny_app/rsconnect/

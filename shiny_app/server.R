@@ -9,10 +9,9 @@
 
 
 # Define server logic required to draw a histogram
-shinyServer(function(input, output) {
+server <- function(input, output) {
 
-    output$flood <- renderPlot({
-
+    output$scatter_plot <- renderPlot({
         natural_disasters_asia %>%
             filter(disaster_subtype %in% "Riverine flood") %>%
             filter(associated_dis %in% "Broken Dam/Burst bank") %>%
@@ -29,4 +28,4 @@ shinyServer(function(input, output) {
 
     })
 
-})
+}
