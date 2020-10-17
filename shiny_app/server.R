@@ -8,11 +8,15 @@
 #
 
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
-
-    output$scatter_plot <- renderPlot({
-        natural_disasters_asia %>%
+  library(tidyverse)
+  library(readxl) 
+  library(janitor)
+  output$scatter_plot <- renderPlot({
+      read_excel("raw_data/emdat_public_2020_10_13_query_uid-DXK6pk.xlsx",
+                                           skip = 6) %>%
+          clean_names() %>%
+          select(-disaster_group, -disaster_subsubtype, -disaster_type, -disaster_subgroup, -event_name)%>%
             filter(disaster_subtype %in% "Riverine flood") %>%
             filter(associated_dis %in% "Broken Dam/Burst bank") %>%
             group_by(year) %>%
@@ -24,8 +28,6 @@ server <- function(input, output) {
                  title = "Frequency of dam breaking or bank bursting riverine flood",
                  subtitle = "From 1990 to 2015",
                  caption = "Source: Emergency Events Database") + 
-            theme_light()
-
+            theme_light() 
     })
-
 }
