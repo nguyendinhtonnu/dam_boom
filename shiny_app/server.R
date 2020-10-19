@@ -30,4 +30,8 @@ server <- function(input, output) {
                  caption = "Source: Emergency Events Database") + 
             theme_light() 
     })
+  output$state_message <- renderText({
+    paste0("This is the state you chose: ", # this is just a string, so it will never change
+           input$selected_state, "!")       # this is based on your input, selected_state defined above.
+  })
 }
