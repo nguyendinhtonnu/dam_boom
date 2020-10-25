@@ -10,7 +10,7 @@
 library(shiny)
 library(tidyverse)
 
-state.names <- c("CA", "NY", "KS")
+years <- c(1990:2015)
 
 # Define UI for application that draws a histogram
 shinyUI(
@@ -45,7 +45,7 @@ shinyUI(
                      book on the Yangtze river and the historic 1931 flood, or 
                      Arupjyoti Saikia's comprehensive work on the Brahmaputra 
                      river delta."),
-                   p("Link to my repo: https://github.com/nguyendinhtonnu/final_project")
+                   p("https://github.com/nguyendinhtonnu/final_project"),
                   ),
                # 
                tabPanel(
@@ -54,18 +54,16 @@ shinyUI(
                    sidebarPanel(
                      "Some river disasters in Asia: Data from EM-DAT",
                                 p("Filtering data from EM-DAT database to 
-                                  only show riverine disasters that results 
-                                  in burst dams or dikes. The frequency of 
-                                  disaster is shown by the size of the point. 
-                                  The plot shows data from 1990 to 2015."),
+                                  only show riverine floods in countries 
+                                  in the word from 1990 to 2015."),
                                 selectInput(
-                                  inputId = "selected_state",                 # a name for the value you choose here
-                                  label = "Choose a state from this list!",   # the name to display on the slider
-                                  choices = state.names)
+                                  inputId = "selected_year",                 # a name for the value you choose here
+                                  label = "Choose a year",   # the name to display on the slider
+                                  choices = years)
                                 ),
                    mainPanel(
                      plotOutput(outputId = "scatter_plot"),
-                     textOutput("state_message")
+                     textOutput("year_message")
                             )
                               ) 
                         )

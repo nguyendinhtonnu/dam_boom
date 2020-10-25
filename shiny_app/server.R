@@ -12,26 +12,30 @@ server <- function(input, output) {
   library(tidyverse)
   library(readxl) 
   library(janitor)
+  
   output$scatter_plot <- renderPlot({
+    
+    on_year <- switch(input$selected_year)
+    
       read_excel("raw_data/emdat_public_2020_10_13_query_uid-DXK6pk.xlsx",
                                            skip = 6) %>%
           clean_names() %>%
           select(-disaster_group, -disaster_subsubtype, -disaster_type, -disaster_subgroup, -event_name)%>%
             filter(disaster_subtype %in% "Riverine flood") %>%
-            filter(associated_dis %in% "Broken Dam/Burst bank") %>%
-            group_by(year) %>%
-            mutate(freq = n()) %>%
-            ggplot(aes(year, country, size = freq)) +
-            geom_point() + 
+            #filter(associated_dis %in% "Broken Dam/Burst bank") %>%
+            filter(year == input$selected_year) %>%
+            ggplot(aes(country)) +
+            geom_bar() + 
+            coord_flip() +
             theme(axis.text.x = element_text(angle = 90)) + 
-            labs(x = "Year", y = "Country", 
+            labs(y = "Count", x = "Country", 
                  title = "Frequency of dam breaking or bank bursting riverine flood",
                  subtitle = "From 1990 to 2015",
                  caption = "Source: Emergency Events Database") + 
             theme_light() 
     })
-  output$state_message <- renderText({
-    paste0("This is the state you chose: ", # this is just a string, so it will never change
-           input$selected_state, "!")       # this is based on your input, selected_state defined above.
+  output$year_message <- renderText({
+    paste0("This is the year you choose: ", # this is just a string, so it will never change
+           input$selected_year, "!")       # this is based on your input, selected_state defined above.
   })
 }
