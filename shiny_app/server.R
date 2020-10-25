@@ -15,8 +15,6 @@ server <- function(input, output) {
   
   output$scatter_plot <- renderPlot({
     
-    on_year <- switch(input$selected_year)
-    
       read_excel("raw_data/emdat_public_2020_10_13_query_uid-DXK6pk.xlsx",
                                            skip = 6) %>%
           clean_names() %>%
