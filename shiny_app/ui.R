@@ -10,41 +10,40 @@
 library(shiny)
 library(tidyverse)
 
+#choices
+
 years <- c(1990:2015)
+regions <- c("All", "Middle East", "South America", "South East Asia", "Oceania", 
+             "North America", "Europe", "Central America", "Central Asia", "Africa",
+             "East Asia", "South Asia")
+
+disaster_types <- c("All", "Drought", "Earthquake", "Volcanic activity", "Storm", "Flood", "Epidemic", "Landslide", "Wildfire", 
+                    "Extreme temperature", "Insect infestation")
 
 # Define UI for application that draws a histogram
 shinyUI(
     navbarPage(
-      "Population and Disasters in Asian River Delta",
+      "Dams and Development",
                tabPanel(
                    "About",
-                   h3("What river is this?"),
-                   p("In this project, I'm going to create maps of at least 5 
-                   major river delta and their basin in Asia (the Irrawaddy, 
-                   the Mekong, the Red, the Yellow, the Yangtze, the 
-                   Brahmaputra-Ganges, etc), looking at hydrological control 
-                   infrastructure in the basin, such as river dikes and large 
-                   dams, and compare it against water-related disaster events, 
-                   such as drought, flood, famine, over time."),
-                  p("I'm also interested in population distribution, land use, 
-                     and topography of each basin. The goal is to illustrate how 
-                     Asia's most powerful rivers are being managed, their 
-                     efficacy and problems over time, and the population most 
-                     vulnerable to these decisions. Furthermore, is there a 
-                     sacficice zone identifiable in these basins? That's 
-                     something I hope to be able to shed light on."),
-                   p("Right now I'm looking at data from the Emergency 
-                     Events Database (EM-DAT), but I'm also looking at 
-                     government census for population data. Geographic studies 
-                     are a good place to figure out the area of delta and 
-                     topographic information. The most difficult thing is 
-                     records of disasters, these tend to be all over the place, 
-                     but I think a good place to start is in comprehensive 
-                     environmental histories of a river delta, such as 
-                     David Pietz's book on the Yellow River, Chris Courtney's 
-                     book on the Yangtze river and the historic 1931 flood, or 
-                     Arupjyoti Saikia's comprehensive work on the Brahmaputra 
-                     river delta."),
+                   h3("The questionable effectiveness of large dams"),
+                   p("In the latter half of the 20th century, the world saw an 
+                     explosion in the number of dams being constructed and put to use. 
+                     In general, a dam is a wall that obstructs a river made of 
+                     durable material. It creates a reservoir for flood control, 
+                     hydropower, irrigation, transportation, or even 
+                     tourism development. "),
+                  p("Though the benefits are obvious, what is often obscured is 
+                    who's being affected by these constructions, and who's benefiting
+                    from it. Reservoirs, especially those built on indigenous land, 
+                    innunadate valuable agricultural land and heritage sites, 
+                    forcing people to relocate to places with less favourable 
+                    conditions, as well as fragmenting their existent social structure.
+                    Dams are also a disruption in the ecosystem where it's placed.
+                    Those who benefit from the energy production or the irrigation may 
+                    never even see the effects that a dam has on the people and the
+                    environment."),
+                   p("[purpose] "),
                    p("https://github.com/nguyendinhtonnu/final_project"),
                   ),
                # 
@@ -52,7 +51,7 @@ shinyUI(
                  "Data",
                  sidebarLayout(
                    sidebarPanel(
-                     "Some river disasters in Asia: Data from EM-DAT",
+                     "Riverine floods by country",
                                 p("Filtering data from EM-DAT database to 
                                   only show riverine floods in countries 
                                   in the word from 1990 to 2015."),
@@ -62,10 +61,41 @@ shinyUI(
                                   choices = years)
                                 ),
                    mainPanel(
-                     plotOutput(outputId = "scatter_plot"),
+                     plotOutput(outputId = "river_plot"),
                      textOutput("year_message")
                             )
-                              ) 
-                        )
+                              ),
+                 sidebarLayout(
+                   sidebarPanel(
+                     "Total number of recorded disasters",
+                     p("All disasters recorded in EM-DAT from 1900 to 2020"),
+                     selectInput(
+                       inputId = "selected_type",                 # a name for the value you choose here
+                       label = "Choose a disaster type",   # the name to display on the slider
+                       choices = disaster_types)
+                   ),
+                   mainPanel(
+                     plotOutput(outputId = "disaster_type_plot"),
+                     textOutput("type_message")
+                   )
+                 )
+                        ),
+      tabPanel(
+        "Dams",
+        sidebarLayout(
+          sidebarPanel(
+            "Total number of recorded disasters",
+            p("All disasters recorded in EM-DAT from 1900 to 2020"),
+            selectInput(
+              inputId = "selected_region",                 # a name for the value you choose here
+              label = "Choose a disaster type",   # the name to display on the slider
+              choices = regions)
+          ),
+          mainPanel(
+            plotOutput(outputId = "dam_region_plot")
+            #textOutput("type_message")
+          )
+        )
                 )
-    )
+    ))
+
