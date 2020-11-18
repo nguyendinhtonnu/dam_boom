@@ -10,16 +10,166 @@
 
 server <- function(input, output) {
   
+  #read data --> data at bottom 
+  
+  library(janitor)
+  library(readxl)
+  library(readr)
+  
+  africa_aquastat <- read_excel("shiny_app/raw_data/dams/africa_aquastat.xlsx", sheet = "Dams", skip = 1, col_types = c("text", 
+                                                                                                                        "text", "text", "text", "text", "text", 
+                                                                                                                        "text", "text", "text", "text", "numeric", 
+                                                                                                                        "numeric", "numeric", "numeric", 
+                                                                                                                        "text", "text", "text", "text", "text", 
+                                                                                                                        "text", "text", "text", "text", "numeric", 
+                                                                                                                        "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3) %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "Africa")
+  
+  casia_aquastat <- read_excel("shiny_app/raw_data/dams/casia_aquastat.xlsx", sheet = "Dams", skip = 1, col_types = c("text", 
+                                                                                                                      "text", "text", "text", "text", "text", 
+                                                                                                                      "text", "text", "text", "text", "numeric", 
+                                                                                                                      "numeric", "numeric", "numeric", 
+                                                                                                                      "text", "text", "text", "text", "text", 
+                                                                                                                      "text", "text", "text", "text", "numeric", 
+                                                                                                                      "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3) %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "Central Asia")
+  
+  cenamer_aquastat <- read_excel("shiny_app/raw_data/dams/cenamer_aquastat.xlsx", sheet = "Dams", skip = 1,
+                                 col_types = c("text", 
+                                               "text", "text", "text", "text", "text", 
+                                               "text", "text", "text", "text", "numeric", 
+                                               "numeric", "numeric", "numeric", 
+                                               "text", "text", "text", "text", "text", 
+                                               "text", "text", "text", "text", "numeric", 
+                                               "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3) %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "Central America")
+  
+  europe_aquastat <- read_excel("shiny_app/raw_data/dams/europe_aquastat.xlsx", sheet = "Dams", skip = 1,
+                                col_types = c("text", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "numeric", "numeric", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3) %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "Europe")
+  
+  namer_aquastat <- read_excel("shiny_app/raw_data/dams/namer_aquastat.xlsx", sheet = "Dams", skip = 1, 
+                               col_types = c("text", 
+                                             "text", "text", "text", "text", "text", 
+                                             "text", "text", "text", "text", "numeric", 
+                                             "numeric", "numeric", "numeric", 
+                                             "text", "text", "text", "text", "text", 
+                                             "text", "text", "text", "text", "numeric", 
+                                             "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3) %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "North America")
+  
+  oceania_aquastat <- read_excel("shiny_app/raw_data/dams/oceania_aquastat.xlsx", sheet = "Dams", skip = 1) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3) %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "Oceania")
+  
+  easia_aquastat <- read_excel("shiny_app/raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
+                               skip = 1,
+                               col_types = c("text", 
+                                             "text", "text", "text", "text", "text", 
+                                             "text", "text", "text", "text", "numeric", 
+                                             "numeric", "numeric", "numeric", 
+                                             "text", "text", "text", "text", "text", 
+                                             "text", "text", "text", "text", "numeric", 
+                                             "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3)  %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    filter(country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea")) %>%
+    mutate(region = "East Asia") 
+  
+  sasia_aquastat <- read_excel("shiny_app/raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
+                               skip = 1,
+                               col_types = c("text", 
+                                             "text", "text", "text", "text", "text", 
+                                             "text", "text", "text", "text", "numeric", 
+                                             "numeric", "numeric", "numeric", 
+                                             "text", "text", "text", "text", "text", 
+                                             "text", "text", "text", "text", "numeric", 
+                                             "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3)  %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    filter(country %in% c("India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) %>%
+    mutate(region = "South Asia") 
+  
+  seasia_aquastat <- read_excel("shiny_app/raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
+                                skip = 1,
+                                col_types = c("text", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "numeric", "numeric", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3)  %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    filter(!country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) %>%
+    mutate(region = "South East Asia") 
+  
+  soamer_aquastat <- read_excel("shiny_app/raw_data/dams/soamer_aquastat.xlsx", sheet = "Dams", skip = 1, 
+                                col_types = c("text", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "numeric", "numeric", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3)  %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "South America")
+  
+  midest_aquastat <- read_excel("shiny_app/raw_data/dams/midest_aquastat.xlsx", sheet = "Dams", skip = 1,
+                                col_types = c("text", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "numeric", "numeric", 
+                                              "text", "text", "text", "text", "text", 
+                                              "text", "text", "text", "text", "numeric", 
+                                              "numeric", "text", "text", "text")) %>%
+    clean_names() %>%
+    rename(ISO3 = iso_alpha_3) %>%
+    select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
+    mutate(region = "Middle East")
+  
+  all_dams <- bind_rows(midest_aquastat, soamer_aquastat, seasia_aquastat, oceania_aquastat, namer_aquastat, 
+                        europe_aquastat, cenamer_aquastat,  casia_aquastat, africa_aquastat, easia_aquastat, sasia_aquastat, seasia_aquastat) %>%
+    group_by(region) %>%
+    mutate(dam_numbers_region = n()) %>%
+    ungroup () %>%
+    group_by(ISO3) %>%
+    mutate(dam_numbers_country = n()) %>%
+    ungroup()
+  
 #       ***LOAD LIBRARIES***
   
   #tidyverse
   
   library(tidyverse)
-  
-  #read data --> data at bottom 
-  
-  library(janitor)
-  library(readxl)
   
   #maps
   
@@ -32,8 +182,9 @@ server <- function(input, output) {
   #Dam numbers by region and by country
   
   output$dam_region_plot <- renderPlot({
+    all_dams %>%
     case_when(
-      input$selected_region == "All" ~ ggplot(all_dams, aes(region, dam_numbers_region)) + 
+      input$selected_region == "All" ~ ggplot(aes(region, dam_numbers_region)) + 
                                        geom_col() +
                                       theme(axis.text.x = element_text(angle = 90)) + 
                                       labs(title = "Total number of dams by region", 
@@ -42,11 +193,11 @@ server <- function(input, output) {
                                            caption = "Source: globaldamwatch.org")
                                       theme_classic(),
       input$selected_region != "All" ~ filter(region == input$selected_region) %>%
-                                     ggplot(dam_numbers, aes(region, dam_numbers_region)) + 
+                                     ggplot(dam_numbers, aes(country, dam_numbers_country)) + 
                                      geom_col() +
                                      theme(axis.text.x = element_text(angle = 90)) + 
                                      labs(title = "Total number of dams by region", 
-                                          x = "Region", 
+                                          x = "Country", 
                                           y = "Number of dams",
                                           caption = "Source: globaldamwatch.org") +
                                      theme_classic())
@@ -54,6 +205,15 @@ server <- function(input, output) {
   
   
   output$river_plot <- renderPlot({
+    
+    #Disasters worldwide
+    
+    em_dat <- read_excel("shiny_app/raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
+                         skip = 6) %>%
+      clean_names()
+    
+    #Make plots
+    
     em_dat %>%
             filter(disaster_subtype %in% "Riverine flood") %>%
             filter(year == input$selected_year) %>%
@@ -112,157 +272,3 @@ server <- function(input, output) {
 
 #Dams worldwide:
 
-africa_aquastat <- read_excel("shiny_app/raw_data/dams/africa_aquastat.xlsx", sheet = "Dams", skip = 1, col_types = c("text", 
-                                                                                                                      "text", "text", "text", "text", "text", 
-                                                                                                                      "text", "text", "text", "text", "numeric", 
-                                                                                                                      "numeric", "numeric", "numeric", 
-                                                                                                                      "text", "text", "text", "text", "text", 
-                                                                                                                      "text", "text", "text", "text", "numeric", 
-                                                                                                                      "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Africa")
-
-casia_aquastat <- read_excel("shiny_app/raw_data/dams/casia_aquastat.xlsx", sheet = "Dams", skip = 1, col_types = c("text", 
-                                                                                                                    "text", "text", "text", "text", "text", 
-                                                                                                                    "text", "text", "text", "text", "numeric", 
-                                                                                                                    "numeric", "numeric", "numeric", 
-                                                                                                                    "text", "text", "text", "text", "text", 
-                                                                                                                    "text", "text", "text", "text", "numeric", 
-                                                                                                                    "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Central Asia")
-
-cenamer_aquastat <- read_excel("shiny_app/raw_data/dams/cenamer_aquastat.xlsx", sheet = "Dams", skip = 1,
-                               col_types = c("text", 
-                                             "text", "text", "text", "text", "text", 
-                                             "text", "text", "text", "text", "numeric", 
-                                             "numeric", "numeric", "numeric", 
-                                             "text", "text", "text", "text", "text", 
-                                             "text", "text", "text", "text", "numeric", 
-                                             "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Central America")
-
-europe_aquastat <- read_excel("shiny_app/raw_data/dams/europe_aquastat.xlsx", sheet = "Dams", skip = 1,
-                              col_types = c("text", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "numeric", "numeric", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Europe")
-
-namer_aquastat <- read_excel("shiny_app/raw_data/dams/namer_aquastat.xlsx", sheet = "Dams", skip = 1, 
-                             col_types = c("text", 
-                                           "text", "text", "text", "text", "text", 
-                                           "text", "text", "text", "text", "numeric", 
-                                           "numeric", "numeric", "numeric", 
-                                           "text", "text", "text", "text", "text", 
-                                           "text", "text", "text", "text", "numeric", 
-                                           "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "North America")
-
-oceania_aquastat <- read_excel("shiny_app/raw_data/dams/oceania_aquastat.xlsx", sheet = "Dams", skip = 1) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Oceania")
-
-easia_aquastat <- read_excel("shiny_app/raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
-                             skip = 1,
-                             col_types = c("text", 
-                                           "text", "text", "text", "text", "text", 
-                                           "text", "text", "text", "text", "numeric", 
-                                           "numeric", "numeric", "numeric", 
-                                           "text", "text", "text", "text", "text", 
-                                           "text", "text", "text", "text", "numeric", 
-                                           "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  filter(country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea")) %>%
-  mutate(region = "East Asia") 
-
-sasia_aquastat <- read_excel("shiny_app/raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
-                             skip = 1,
-                             col_types = c("text", 
-                                           "text", "text", "text", "text", "text", 
-                                           "text", "text", "text", "text", "numeric", 
-                                           "numeric", "numeric", "numeric", 
-                                           "text", "text", "text", "text", "text", 
-                                           "text", "text", "text", "text", "numeric", 
-                                           "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  filter(country %in% c("India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) %>%
-  mutate(region = "South Asia") 
-
-seasia_aquastat <- read_excel("shiny_app/raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
-                              skip = 1,
-                              col_types = c("text", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "numeric", "numeric", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  filter(!country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) %>%
-  mutate(region = "South East Asia") 
-
-soamer_aquastat <- read_excel("shiny_app/raw_data/dams/soamer_aquastat.xlsx", sheet = "Dams", skip = 1, 
-                              col_types = c("text", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "numeric", "numeric", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "South America")
-
-midest_aquastat <- read_excel("shiny_app/raw_data/dams/midest_aquastat.xlsx", sheet = "Dams", skip = 1,
-                              col_types = c("text", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "numeric", "numeric", 
-                                            "text", "text", "text", "text", "text", 
-                                            "text", "text", "text", "text", "numeric", 
-                                            "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Middle East")
-
-all_dams <- bind_rows(midest_aquastat, soamer_aquastat, seasia_aquastat, oceania_aquastat, namer_aquastat, 
-                      europe_aquastat, cenamer_aquastat,  casia_aquastat, africa_aquastat, easia_aquastat, sasia_aquastat, seasia_aquastat) %>%
-  group_by(region) %>%
-  mutate(dam_numbers_region = n()) %>%
-  ungroup () %>%
-  group_by(ISO3) %>%
-  mutate(dam_numbers_country = n()) %>%
-  ungroup()
-
-#Disasters worldwide
-
-em_dat <- read_excel("shiny_app/raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
-                     skip = 6) %>%
-  clean_names()
