@@ -17,8 +17,10 @@ regions <- c("All", "Middle East", "South America", "South East Asia", "Oceania"
              "North America", "Europe", "Central America", "Central Asia", "Africa",
              "East Asia", "South Asia")
 
-disaster_types <- c("All", "Drought", "Earthquake", "Volcanic activity", "Storm", "Flood", "Epidemic", "Landslide", "Wildfire", 
+disaster_types <- c("Drought", "Earthquake", "Volcanic activity", "Storm", "Flood", "Epidemic", "Landslide", "Wildfire", 
                     "Extreme temperature", "Insect infestation")
+
+
 
 # Define UI for application that draws a histogram
 shinyUI(
@@ -72,7 +74,9 @@ shinyUI(
                      selectInput(
                        inputId = "selected_type",                 # a name for the value you choose here
                        label = "Choose a disaster type",   # the name to display on the slider
-                       choices = disaster_types)
+                       choices = disaster_types, 
+                       selected = disaster_types, 
+                       multiple = TRUE)
                    ),
                    mainPanel(
                      plotOutput(outputId = "disaster_type_plot"),
