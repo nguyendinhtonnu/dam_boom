@@ -1,0 +1,211 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+  # Libraries I'll need
+library(tidyverse)
+library(purrr)
+library(dplyr)
+library(janitor)
+library(readxl)
+library(wbstats)
+library(naniar)
+```
+
+```{r read_dams}
+
+ # Create function to import GRandD dams and reservoirs data. 
+
+read_dams <- function(file, region){
+  
+  # Specify columns, clean names, deselect problematic variable. 
+  
+  read_excel(file, sheet = "Dams", skip = 1, col_types = c("text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "numeric", 
+        "numeric", "text", "text", "text")) %>%
+  clean_names() %>%
+  select(-other_reference_s) %>%
+    
+    # Create variable region, since datasets are for individual regions. 
+    
+  mutate(region = region) 
+}
+
+clean_dams <- function(df){
+  
+  # Clean up dam purpose columns. 
+  
+  df_2 <- df %>%
+  select(name_of_dam, irrigation:other) %>%
+  pivot_longer(cols = c(irrigation:other), names_to = "purpose", values_to = "value") %>%
+  drop_na(value) %>%
+  group_by(name_of_dam, value) %>%
+  mutate(purpose = list(purpose)) %>%
+  mutate(multipurpose = n()) %>%
+  mutate(multipurpose = ifelse(multipurpose > 1, "yes", "no")) %>%
+  ungroup() %>%
+  select(-value)
+  
+  # Remove duplicates with this line of code.
+  
+  df_2 <- df_2[!duplicated(df_2), ]
+  
+  # Join final cleaned data.
+  
+  df %>%
+    select(-(irrigation:other)) %>%
+  left_join(df_2, by = "name_of_dam")
+}
+
+import_dams <- function(file, region){
+  read_dams(file, region) %>%
+  clean_dams()
+} # Final function
+
+ # Import GRandD data for each world region. 
+
+south_america <- import_dams("raw_data/dams/soamer_aquastat.xlsx", "South America")
+central_america <- import_dams("raw_data/dams/cenamer_aquastat.xlsx", "Central America")
+north_america <- import_dams("raw_data/dams/namer_aquastat.xlsx", "North America")
+europe <- import_dams("raw_data/dams/europe_aquastat.xlsx", "Europe") 
+africa <- import_dams("raw_data/dams/africa_aquastat.xlsx", "Africa")
+middle_east <- import_dams("raw_data/dams/midest_aquastat.xlsx", "Middle East")
+central_asia <- import_dams("raw_data/dams/casia_aquastat.xlsx", "Central Asia")
+east_asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "East Asia") %>%
+  filter(country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "Mongolia"))
+south_asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "South Asia") %>%
+  filter(country %in% c("India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) 
+se_asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "South East Asia") %>%
+  filter(!country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal", "Mongolia"))
+oceania <- import_dams("raw_data/dams/oceania_aquastat.xlsx", "Oceania")
+
+  # Simplified for about page
+
+asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "Asia") %>%
+  bind_rows(central_asia) %>%
+  mutate(region = "Asia")
+central_south <- bind_rows(south_america, central_america) %>%
+  mutate(region = "Central and South America")
+
+  # Bind rows and save as .rds file for all dams. 
+
+all_dams <- bind_rows(south_america, central_america, north_america, europe, africa, middle_east, central_asia, east_asia, south_asia, se_asia, oceania) %>%
+  mutate(year = ifelse(completed_operational_since %in% c("NA", "Incomplete", "Incomplete?", "IN CONSTRUCTION", "INCOMPLETE", "Proposed dam"), NA, completed_operational_since)) %>%
+  mutate(year = as.numeric(year)) %>%
+  rename(code = iso_alpha_3)
+
+all_dams_about <- bind_rows(central_south, north_america, europe, africa, middle_east,
+                            asia, oceania)
+
+saveRDS(all_dams, "shiny_app/all_dams.rds")
+saveRDS(all_dams_about, "shiny_app/all_dams_about.rds")
+```
+
+```{r wbstats}
+
+wb_import <- function(indicator, name){
+  wb_data(indicator = indicator, start_date = 1900, end_date = 2015) %>%
+  select(code = iso3c, date, name = indicator) %>%
+  mutate(date = as.double(date))
+}
+
+# Import World Bank population data. 
+
+pop <- wb_import(indicator = "SP.POP.TOTL", name = pop)
+
+# Import World Bank GDP data. 
+
+gdp <- wb_import(indicator = "NY.GDP.MKTP.CD", name = gdp)
+
+# Import World Bank drinking water availability data. 
+
+safe_water <- wb_import(indicator = "SH.H2O.SMDW.ZS", name = water_avail)
+
+# Import World Bank water withdrawal data data. 
+
+water_withdraw <- wb_import(indicator = "ER.H2O.FWTL.ZS", name = water_withdraw)
+
+# Import World Bank agricultural land data. 
+
+ag_land <- wb_import(indicator = "AG.LND.TOTL.K2", name = ag_land)
+
+# Import World Bank agricultural irrigated land data. 
+
+ir_land <- wb_import(indicator = "AG.LND.IRIG.AG.ZS", name = ir_land_percent)
+
+# Join and save as .rds for all WB stats. 
+
+all_wbstats <- list(pop, gdp, safe_water, water_withdraw, ag_land, ir_land) %>% 
+  reduce(left_join, by = c("code", "date")) %>%
+  rename(pop = name.x,
+         gdp = name.y,
+         safe_water = name.x.x,
+         water_withdraw = name.y.y,
+         ar_land = name.x.x.x,
+         ir_land = name.y.y.y,
+         year = date) 
+
+saveRDS(all_wbstats, "shiny_app/all_wbstats.rds")
+```
+```{r read_other}
+subnational <- read_excel("raw_data/subnational/clean_formatted_wb_subnational.xlsx")
+saveRDS(subnational, "shiny_app/subnational.rds")
+
+em_dat <- read_excel("raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
+                       skip = 6) %>%
+    clean_names() %>%
+    filter(disaster_type %in% c("Drought", "Flood", "Landslide", "Extreme temperature")) %>%
+  rename(code = iso) %>%
+  mutate(year = as.numeric(year)) %>%
+  select(year, code, disaster_type) %>%
+  group_by(year, code, disaster_type) %>%
+  mutate(disaster_count = n()) 
+
+em_dat <- em_dat[!duplicated(em_dat), ]
+
+```
+```{r file_path}
+file_path <- tibble(country_name = c("Argentina", "Bolivia", "Brazil", "Burkina Faso",
+                                    "China", "Cuba", "India", "Indonesia", 
+                                    "Iran", "Laos", "Mexico", "Romania", "Russia", 
+                                    "South Africa", "Turkey", "Uruguay", 
+                                    "Zimbabwe"),
+                   file_path = c("raw_data/subnational/geometry/argentina/geo1_ar2010.shp",
+                   "raw_data/subnational/geometry/bolivia/geo1_bo2012.shp",
+                   "raw_data/subnational/geometry/brazil/geo1_br2010.shp",
+                   "raw_data/subnational/geometry/burkina_faso/geo1_bf2006.shp",
+                   "raw_data/subnational/geometry/china/geo1_cn2000.shp",
+                   "raw_data/subnational/geometry/cuba/geo1_cu2012.shp",
+                   "raw_data/subnational/geometry/indonesia/geo1_in2009.shp",
+                   "raw_data/subnational/geometry/india/geo1_id2010.shp",
+                   "raw_data/subnational/geometry/iran/geo1_ir2011.shp",
+                   "raw_data/subnational/geometry/laos/geo1_la2005.shp",
+                   "raw_data/subnational/geometry/mexico/geo1_mx2015.shp",
+                   "raw_data/subnational/geometry/romania/geo1_ro2011.shp",
+                   "raw_data/subnational/geometry/russia/geo1_ru2010.shp",
+                   "raw_data/subnational/geometry/south_africa/geo1_za2016.shp",
+                   "raw_data/subnational/geometry/turkey/geo1_tr2000.shp",
+                   "raw_data/subnational/geometry/uruguay/geo1_uy2011.shp",
+                   "raw_data/subnational/geometry/zimbabwe/geo1_zw2012.shp"
+                   ))
+  
+saveRDS(file_path, "shiny_app/file_path.rds")
+
+
+```
+```{r join}
+joined <- all_dams %>%
+  group_by(code, year) %>%
+  mutate(dams_count = n()) %>%
+  select(code, year, dams_count) 
+
+joined <- joined[!duplicated(joined), ]
+
+joined <- joined %>%
+  left_join(em_dat, by = c("code", "year")) %>%
+  left_join(all_wbstats, by = c("code", "year")) 
+  
+saveRDS(joined, "shiny_app/joined.rds")
+```
