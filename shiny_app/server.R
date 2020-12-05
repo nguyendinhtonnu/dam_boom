@@ -1,120 +1,75 @@
-#
-# This is the server logic of a Shiny web application. You can run the
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+###########PREP############
+  
+  # Load libraries.
+library(shiny)
+library(shinythemes)
+library(tidyverse)
+library(purrr)
+library(dplyr)
+library(janitor)
+library(readxl)
+library(maptools)
+library(leaflet)
+library(sf)
+library(sp)
+library(ggplot2)
+library(rgdal)
+library(grid)
+library(wbstats)
 
+  # Read in data. 
+
+all_dams <- readRDS("all_dams.rds")
+all_dams_about <- readRDS("all_dams_about.rds") 
+all_wbstats <- readRDS("all_wbstats.rds")
+file_path <- readRDS("file_path.rds")
 
 server <- function(input, output) {
-  
-  #read data --> data at bottom 
-  
-  library(janitor)
-  library(readxl)
-  library(readr)
-  
-  #Disasters worldwide
-  
-  em_dat <- read_excel("raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
-                       skip = 6) %>%
-    clean_names()
-  
-  #aquastat dams stuff
-  
-  all_dams <- readRDS("raw_data/all_dams.rds")
-  
-  all_dams %>%
-    group_by(region) %>%
-    mutate(dam_numbers_region = n()) %>%
-    ungroup () %>%
-    group_by(ISO3) %>%
-    mutate(dam_numbers_country = n()) %>%
-    ungroup()
-  
-#       ***LOAD LIBRARIES***
-  
-  #tidyverse
-  
-  library(tidyverse)
-  
-  #maps
-  
-  library(maptools)
-  data(wrld_simpl)
-  library(leaflet)
-  
-  #do all the cleaning stuff in the RMD 
-  
-  
-#     ***MAKE PLOTS***
+###########FIRST PAGE#############
   
   #Dam numbers by region and by country
   
-  output$dam_region_plot <- renderPlot({
-    all_dams %>%
-     filter(region == input$selected_region) %>%
-                                     ggplot(dam_numbers, aes(country, dam_numbers_country)) + 
-                                     geom_col() +
-                                     theme(axis.text.x = element_text(angle = 90)) + 
-                                     labs(title = "Total number of dams by region", 
-                                          x = "Country", 
+  output$world_increase <- renderPlot({
+    all_dams_about %>% 
+      group_by(region) %>%
+      drop_na(completed_operational_since) %>%
+      mutate(count = n()) %>%
+      ggplot(aes(completed_operational_since, fill = fct_reorder(region, count))) + 
+      geom_bar(position = "stack") + 
+      theme(axis.text.x = element_text(angle = 90)) + 
+      scale_x_discrete(breaks = c(seq(from = 0, to = 2019, by = 50))) + 
+      theme_light() +
+      theme(axis.text.x = element_text(angle = 90)) + 
+      labs(title = "Number of dams and reservoirs in operation by each year", 
+                                          x = "Year", 
                                           y = "Number of dams",
-                                          caption = "Source: globaldamwatch.org") +
-                                     theme_classic()
+                                          caption = "Source: GrandD v1.3") 
                                         })
   
-  
-  output$river_plot <- renderPlot({
+  output$basin_map <- renderLeaflet({
+    all_dams_new <- all_dams %>%
+      group_by(major_basin) %>%
+      mutate(dams_count = n()) %>%
+      drop_na(decimal_degree_latitude) 
     
-
-    #Make plots
+    coordinates(all_dams_new) = c("decimal_degree_longitude","decimal_degree_latitude")
+    crs.geo1 = CRS("+proj=longlat")
+    proj4string(all_dams_new) = crs.geo1
     
-    em_dat %>%
-            filter(disaster_subtype %in% "Riverine flood") %>%
-            filter(year == input$selected_year) %>%
-            ggplot(aes(country)) +
-            geom_bar() + 
-            theme(axis.text.x = element_text(angle = 90)) + 
-            labs(y = "Count", x = "Country", 
-                 title = "Frequency of dam breaking or bank bursting riverine flood",
-                 subtitle = "From 1990 to 2015",
-                 caption = "Source: Emergency Events Database") + 
-            theme_light() 
-    })
-  
-  output$year_message <- renderText({
-    paste0("This is the year you choose: ", # this is just a string, so it will never change
-           input$selected_year, "!")       # this is based on your input, selected_state defined above.
+    basin_agg = aggregate(x=all_dams_new["dams_count"],by = basins, FUN = length)
+    
+    qpal = colorBin("Reds", basin_agg$dams_count, bins=6)
+    
+    
+    leaflet(basin_agg) %>%
+      addTiles() %>%
+      addPolygons(stroke = TRUE,opacity = 0.5,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~qpal(dams_count)) %>%
+      addLegend(values=~dams_count,pal=qpal,title="Number of Dams and Reservoirs") %>% 
+      addCircleMarkers(data = all_dams %>%
+                         drop_na(decimal_degree_latitude, decimal_degree_longitude), 
+                       lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
   })
-  
-  output$disaster_type_plot <- renderPlot({
-  em_dat %>%
-      filter(disaster_type == input$selected_type) %>% 
-                  group_by(year) %>%
-                  mutate(count = n()) %>%
-                  filter(count >= 1) %>%
-                  ggplot(aes(year, count, group = 1)) +
-                  geom_line(colour = "powderblue") +
-                  geom_point(size = 0.1) +
-                  labs(y = "Count", x = "Year", 
-                       title = "Frequency of Recorded Natural Disaster",
-                       subtitle = "From 1900 to 2020",
-                       caption = "Source: Emergency Events Database") + 
-                  scale_x_discrete(breaks = seq(from = 1900, to = 2020, by = 20)) + 
-                  theme_light()
-  })
-  
-  output$type_message <- renderText({
-    paste0("This is the disaster type you choose: ", # this is just a string, so it will never change
-           input$selected_type, "!")       # this is based on your input, selected_state defined above.
-  })
-  
 }
-
-#   ***READ DATA***
-
-#Dams worldwide:
-
+  
+  
+  

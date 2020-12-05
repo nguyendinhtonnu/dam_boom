@@ -1,0 +1,36 @@
+---
+title: "figuring it out"
+author: "Tonnu"
+date: "12/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+all_dams %>%
+  group_by(country) %>%
+  summarize(total_dam = n()) %>%
+  arrange(desc(total_dam)) 
+
+all_dams_1 %>%
+  group_by(country) %>%
+  summarize(total_dam = n()) %>%
+  arrange(desc(total_dam)) 
+
+#if remove coordinates, very different ranking
+```
+
+```{r grandd}
+dam_map <- st_read("raw_data/GRanD_Version_1_3/GRanD_dams_v1_3.shp") 
+
+
+ggplot(dam_map) +
+  geom_sf()
+
+leaflet(dam_map) %>%
+  addPolygons(stroke = TRUE,opacity = 1,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1)
+```
+

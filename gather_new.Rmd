@@ -6,22 +6,34 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-#tidyverse
+knitr::opts_chunk$set(echo = FALSE)
+  # Libraries I'll need
 library(tidyverse)
-#read data
+library(purrr)
+library(dplyr)
 library(janitor)
 library(readxl)
-#maos
 library(maptools)
-data(wrld_simpl)
 library(leaflet)
+library(sf)
+library(sp)
+library(ggplot2)
+library(rgdal)
+library(grid)
+library(wbstats)
 ```
 
-1. Data wrangling code chunks
+1. Cleaning
 
 ```{r read_dams}
-africa_aquastat <- read_excel("raw_data/dams/africa_aquastat.xlsx", sheet = "Dams", skip = 1, col_types = c("text", 
+
+ # Create function to import GRandD dams and reservoirs data. 
+
+read_dams <- function(file, region){
+  
+  # Specify columns, clean names, deselect problematic variable. 
+  
+  read_excel(file, sheet = "Dams", skip = 1, col_types = c("text", 
         "text", "text", "text", "text", "text", 
         "text", "text", "text", "text", "numeric", 
         "numeric", "numeric", "numeric", 
@@ -29,187 +41,189 @@ africa_aquastat <- read_excel("raw_data/dams/africa_aquastat.xlsx", sheet = "Dam
         "text", "text", "text", "text", "numeric", 
         "numeric", "text", "text", "text")) %>%
   clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Africa")
+  select(-other_reference_s) %>%
+    
+    # Create variable region, since datasets are for individual regions. 
+    
+  mutate(region = region) 
+}
 
-casia_aquastat <- read_excel("raw_data/dams/casia_aquastat.xlsx", sheet = "Dams", skip = 1, col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Central Asia")
+clean_dams <- function(df){
+  
+  # Clean up dam purpose columns. 
+  
+  df_2 <- df %>%
+  select(name_of_dam, irrigation:other) %>%
+  pivot_longer(cols = c(irrigation:other), names_to = "purpose", values_to = "value") %>%
+  drop_na(value) %>%
+  group_by(name_of_dam, value) %>%
+  mutate(purpose = list(purpose)) %>%
+  mutate(multipurpose = n()) %>%
+  mutate(multipurpose = ifelse(multipurpose > 1, "yes", "no")) %>%
+  ungroup() %>%
+  select(-value)
+  
+  # Remove duplicates with this line of code.
+  
+  df_2 <- df_2[!duplicated(df_2), ]
+  
+  # Join final cleaned data.
+  
+  df %>%
+    select(-(irrigation:other)) %>%
+  left_join(df_2, by = "name_of_dam")
+}
 
-cenamer_aquastat <- read_excel("raw_data/dams/cenamer_aquastat.xlsx", sheet = "Dams", skip = 1,
-                               col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Central America")
+import_dams <- function(file, region){
+  read_dams(file, region) %>%
+  clean_dams()
+} # Final function
 
-europe_aquastat <- read_excel("raw_data/dams/europe_aquastat.xlsx", sheet = "Dams", skip = 1,
-                              col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Europe")
+ # Import GRandD data for each world region. 
 
-namer_aquastat <- read_excel("raw_data/dams/namer_aquastat.xlsx", sheet = "Dams", skip = 1, 
-                             col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "North America")
+south_america <- import_dams("raw_data/dams/soamer_aquastat.xlsx", "South America")
+central_america <- import_dams("raw_data/dams/cenamer_aquastat.xlsx", "Central America")
+north_america <- import_dams("raw_data/dams/namer_aquastat.xlsx", "North America")
+europe <- import_dams("raw_data/dams/europe_aquastat.xlsx", "Europe") 
+africa <- import_dams("raw_data/dams/africa_aquastat.xlsx", "Africa")
+middle_east <- import_dams("raw_data/dams/midest_aquastat.xlsx", "Middle East")
+central_asia <- import_dams("raw_data/dams/casia_aquastat.xlsx", "Central Asia")
+east_asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "East Asia") %>%
+  filter(country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "Mongolia"))
+south_asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "South Asia") %>%
+  filter(country %in% c("India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) 
+se_asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "South East Asia") %>%
+  filter(!country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal", "Mongolia"))
+oceania <- import_dams("raw_data/dams/oceania_aquastat.xlsx", "Oceania")
 
-oceania_aquastat <- read_excel("raw_data/dams/oceania_aquastat.xlsx", sheet = "Dams", skip = 1) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  #select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Oceania")
+  # Simplified for about page
 
-easia_aquastat <- read_excel("raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
-                              skip = 1,
-                              col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  filter(country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea")) %>%
-  mutate(region = "East Asia") 
+asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "Asia") %>%
+  bind_rows(central_asia) %>%
+  mutate(region = "Asia")
+central_south <- bind_rows(south_america, central_america) %>%
+  mutate(region = "Central and South America")
 
-sasia_aquastat <- read_excel("raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
-                              skip = 1,
-                              col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  filter(country %in% c("India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) %>%
-  mutate(region = "South Asia") 
+  # Bind rows and save as .rds file for all dams. 
 
-seasia_aquastat <- read_excel("raw_data/dams/seasia_aquastat.xlsx", sheet = "Dams", 
-                              skip = 1,
-                              col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  filter(!country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal")) %>%
-  mutate(region = "South East Asia") 
+all_dams <- bind_rows(south_america, central_america, north_america, europe, africa, middle_east, central_asia, east_asia, south_asia, se_asia, oceania)
 
-soamer_aquastat <- read_excel("raw_data/dams/soamer_aquastat.xlsx", sheet = "Dams", skip = 1, 
-                             col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3)  %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "South America")
+all_dams_about <- bind_rows(central_south, north_america, europe, africa, middle_east,
+                            asia, oceania)
 
-midest_aquastat <- read_excel("raw_data/dams/midest_aquastat.xlsx", sheet = "Dams", skip = 1,
-                              col_types = c("text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "numeric", "text", "text", "text")) %>%
-  clean_names() %>%
-  rename(ISO3 = iso_alpha_3) %>%
-  select(country, name_of_dam, ISO3, major_basin, sub_basin, completed_operational_since, dam_height_m) %>%
-  mutate(region = "Middle East")
-
-all_dams <- bind_rows(midest_aquastat, soamer_aquastat, seasia_aquastat, oceania_aquastat, namer_aquastat, 
-          europe_aquastat, cenamer_aquastat,  casia_aquastat, africa_aquastat, easia_aquastat, sasia_aquastat, seasia_aquastat)
-
-saveRDS(all_dams, "shiny_app/raw_data/all_dams.rds")
+saveRDS(all_dams, "shiny_app/all_dams.rds")
+saveRDS(all_dams_about, "shiny_app/all_dams_about.rds")
 ```
+```{r wbstats}
 
-```{r read...}
+wb_import <- function(indicator, name){
+  wb_data(indicator = indicator, start_date = 1900, end_date = 2015) %>%
+  select(code = iso3c, date, name = indicator) %>%
+  mutate(date = as.double(date))
+}
+
+# Import World Bank population data. 
+
+pop <- wb_import(indicator = "SP.POP.TOTL", name = pop)
+
+# Import World Bank GDP data. 
+
+gdp <- wb_import(indicator = "NY.GDP.MKTP.CD", name = gdp)
+
+# Import World Bank water availability data. 
+
+safe_water <- wb_import(indicator = "SH.H2O.SMDW.ZS", name = water_avail)
+
+# Import World Bank water withdrawal data data. 
+
+water_withdraw <- wb_import(indicator = "ER.H2O.FWTL.ZS", name = water_withdraw)
+
+# Import World Bank agricultural land data. 
+
+ag_land <- wb_import(indicator = "AG.LND.AGRI.ZS", name = ag_land)
+
+# Import World Bank agricultural irrigated land data. 
+
+ir_land <- wb_import(indicator = "AG.LND.IRIG.AG.ZS", name = ir_land_percent)
+
+# Join and save as .rds for all WB stats. 
+
+all_wbstats <- list(pop, gdp, water_avail, water_withdraw, ag_land, ir_land_percent) %>% 
+  reduce(left_join, by = c("code", "date")) %>%
+  rename(pop = name.x,
+         gdp = name.y,
+         safe_water = name.x.x,
+         water_withdraw = name.y.y,
+         ar_land = name.x.x.x,
+         ir_land = name.y.y.y)
+
+saveRDS(all_wbstats, "shiny_app/all_wbstats.rds")
+```
+```{r read_other}
+subnational <- read_excel("raw_data/subnational/clean_formatted_wb_subnational.xlsx")
+
 
 ```
+```{r save_rds}
+file_path <- tibble(country_name = c("Argentina", "Bolivia", "Brazil", "Burkina Faso",
+                                    "China", "Cuba", "India", "Indonesia", 
+                                    "Iran", "Laos", "Mexico", "Romania", "Russia", 
+                                    "South Africa", "Turkey", "Uruguay", 
+                                    "Zimbabwe"),
+                   file_path = c("raw_data/subnational/geometry/argentina/geo1_ar2010.shp",
+                   "raw_data/subnational/geometry/bolivia/geo1_bo2012.shp",
+                   "raw_data/subnational/geometry/brazil/geo1_br2010.shp",
+                   "raw_data/subnational/geometry/burkina_faso/geo1_bf2006.shp",
+                   "raw_data/subnational/geometry/china/geo1_cn2000.shp",
+                   "raw_data/subnational/geometry/cuba/geo1_cu2012.shp",
+                   "raw_data/subnational/geometry/india/geo1_id2010.shp",
+                   "raw_data/subnational/geometry/indonesia/geo1_in2009.shp",
+                   "raw_data/subnational/geometry/iran/geo1_ir2011.shp",
+                   "raw_data/subnational/geometry/laos/geo1_la2005.shp",
+                   "raw_data/subnational/geometry/mexico/geo1_mx2015.shp",
+                   "raw_data/subnational/geometry/romania/geo1_ro2011.shp",
+                   "raw_data/subnational/geometry/russia/geo1_ru2010.shp",
+                   "raw_data/subnational/geometry/south_africa/geo1_za2016.shp",
+                   "raw_data/subnational/geometry/turkey/geo1_tr2000.shp",
+                   "raw_data/subnational/geometry/uruguay/geo1_uy2011.shp",
+                   "raw_data/subnational/geometry/zimbabwe/geo1_zw2012.shp"
+                   ))
+  
+saveRDS(file_path, "shiny_app/file_path.rds")
+
+
+```
+
 
 
 2. Maps
 
 ```{r dams}
-dam_numbers <- all_dams %>%
-  group_by(region) %>%
-  mutate(dam_numbers_region = n()) %>%
-  ungroup () %>%
-  group_by(ISO3) %>%
-  mutate(dam_numbers_country = n())  
-
-ggplot(dam_numbers, aes(region, dam_numbers_region)) + 
-  geom_col() +
-  theme(axis.text.x = element_text(angle = 90)) 
-
-sea_dams <- dam_numbers %>%
-  filter(region == "Africa") %>%
-  ungroup() %>%
-  group_by(country) %>%
-  summarize(dam_numbers_country = n(), .groups = "drop")
-  
   dam_num <- all_dams %>%
+  drop_na(decimal_degree_latitude) %>%
   group_by(country, region) %>%
   summarize(dam_numbers_country = n(), .groups = "drop")  %>%
-  arrange(desc(dam_numbers_country)) 
+  arrange(desc(dam_numbers_country)) %>%
+  slice(1:20)
   
   dam_num %>% slice(1:10) %>%
     ggplot(aes(country, dam_numbers_country, fill = region)) + 
   geom_col() +
     theme(axis.text.x = element_text(angle = 90)) 
   
-    all_dams %>% filter(region == "Africa") %>%
-      group_by(completed_operational_since) %>%
+  all_dams_about <- readRDS("shiny_app/all_dams_about.rds") 
+
+  
+    all_dams_about %>% 
+      group_by(region) %>%
       drop_na(completed_operational_since) %>%
-      summarize(count = n()) %>%
-    ggplot(aes(completed_operational_since, count)) + 
-  geom_col() + 
+      mutate(count = n()) %>%
+    ggplot(aes(completed_operational_since, fill = fct_reorder(region, count))) + 
+ geom_bar(position = "stack") + 
       theme(axis.text.x = element_text(angle = 90)) + 
-      scale_x_discrete(breaks = c(seq(from = 0, to = 2019, by = 50)))
+      scale_fill_discrete(name = "Regions") +
+      scale_x_discrete(breaks = c(seq(from = 0, to = 2019, by = 50))) + 
+      theme_light()
 
 all_dams %>% 
       filter(ISO3 == "VNM", major_basin == "Red") %>%
@@ -223,8 +237,10 @@ all_dams %>%
     
     unique(all_dams$region)
     
-    case_when(1:1000 < 100 ~ "low", TRUE ~ "high")
-
+      em_dat <- read_excel("raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
+                       skip = 6) %>%
+    clean_names()
+  
 ```
 my_simpl <- wrld_simpl 
 
@@ -251,7 +267,7 @@ pal <- colorNumeric(
   domain = my_simpl@data$dam_numbers
 )
 
-leaflet(my_simpl) %>% 
+leaflet() %>% 
   setView(lng = 0, lat = 0, zoom = 0) %>%
   addTiles() %>%
   addPolygons(stroke = FALSE, smoothFactor = 0.2, fillOpacity = 1,
@@ -259,8 +275,23 @@ leaflet(my_simpl) %>%
   addLegend("bottomright", pal = pal, values = ~ dam_numbers,
     title = "Dam numbers",
     labFormat = labelFormat(prefix = "$"),
-    opacity = 1
-  )
+    opacity = 1)
+  
+```{r test}
+  leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = all_dams, lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1) %>%
+  setView(lat = 0, lng = 0, zoom = 2)
+```
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   (PL: 
   In this project, I'm going to create maps of at least 5 
