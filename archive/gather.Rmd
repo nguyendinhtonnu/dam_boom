@@ -1,0 +1,112 @@
+---
+title: "gather"
+author: "Tonnu"
+date: "10/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(janitor)
+```
+
+
+```{r test}
+
+em_dat <- read_excel("raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
+                                           skip = 6) %>%
+  clean_names() 
+
+em_dat %>%
+            #filter(continent == "Asia") %>%
+            #filter(disaster_subtype == "Riverine flood") %>%
+            #filter(associated_dis %in% "Broken Dam/Burst bank") %>%
+            #drop_na(river_basin) %>%
+            group_by(year) %>%
+            mutate(count = n()) %>%
+            filter(count >= 1) %>%
+            ggplot(aes(year, count, group = 1)) +
+            #geom_point() + 
+            geom_line(colour = "powderblue") +
+            geom_point(size = 0.1) +
+            labs(y = "Count", x = "Year", 
+                 title = "Frequency of Recorded Natural Disaster",
+                 subtitle = "From 1900 to 2020",
+                 caption = "Source: Emergency Events Database") + 
+            scale_x_discrete(breaks = seq(from = 1900, to = 2020, by = 20)) 
+#            theme(axis.text.x = element_text(size = 5, angle = 90))    
+```
+
+```{r}
+
+country_codes <- read_excel("raw_data/forest cover.xls", 
+    sheet = "Metadata - Countries", col_types = c("text", 
+        "text", "text", "skip", "text")) %>%
+  clean_names()
+
+forest_cover <- read_excel("raw_data/forest cover.xls", skip = 3) %>%
+  clean_names() %>%
+  select(-c("x1960":"x1989", -c("x2015":"x2020"))) %>%
+  right_join(country_codes, by = "country_code") 
+
+
+forest_cover_long <- forest_cover %>%
+  pivot_longer(names_to = "year", cols = c("x1990":"x2014"), values_to = "percentage") 
+
+country_codes <- forest_cover %>%
+  select(country_name, country_code, region, income_group)
+
+
+forest_cover %>%
+  filter(region == "South Asia") %>%
+  mutate(change = x2015 - x1990) %>%
+  ggplot(aes(change, country_name)) +
+  geom_col()
+
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(maptools)
+data(wrld_simpl)
+library(readxl)
+library(leaflet)
+N_America_dams_eng <- read_excel("/Volumes/Ton Nu /harvard/syllabus fall 2020/gov 50/projects/final_project/raw_data/N. America-dams_eng.xlsx", 
+    sheet = "Dams", skip = 1) %>%
+  clean_names() %>%
+  rename(ISO3 = iso_alpha_3) %>%
+  group_by(ISO3) %>%
+  summarize(dam_numbers = n()) 
+
+na_simpl <- wrld_simpl 
+
+na_simpl@data <- left_join(N_America_dams_eng, wrld_simpl@data, by = "ISO3")
+
+#na_simpl@polygons <- na_simpl@polygons %>%
+ # filter(ID %in% c("CAN", "MEX", "USA"))
+  
+#have all the data for all the continents --> replace na_simpl = wrld_simpl 
+
+pal <- colorNumeric(
+  palette = "YlGnBu",
+  domain = na_simpl@data$dam_numbers
+)
+
+leaflet(na_simpl) %>% 
+  setView(lng = 0, lat = 0, zoom = 0) %>%
+  addTiles() %>%
+ c %>%
+  addLegend("bottomright", pal = pal, values = ~ dam_numbers,
+    title = "Dam numbers",
+    labFormat = labelFormat(prefix = "$"),
+    opacity = 1
+  )
+
+```
+

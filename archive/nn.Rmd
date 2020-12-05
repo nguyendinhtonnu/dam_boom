@@ -1,0 +1,253 @@
+---
+title: "new gather"
+author: "Tonnu"
+date: "12/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(tidyverse)
+library(dplyr)
+library(leaflet)
+library(ggplot2)
+library(wbstats)
+library(janitor)
+library(sp)
+library(rgdal)
+library(rgeos)
+library(grid)
+library(readxl)
+library(maptools)
+options(scipen = 999)
+
+```
+
+
+```{r shapefiles}
+
+
+
+mymap <- readOGR("raw_data/subnational/geo1_ar2010/geo1_ar2010.shp") 
+
+mymap@data <- mymap@data %>% 
+  clean_names()
+
+all_dams <- read_rds("shiny_app/raw_data/all_dams.rds")
+
+all_dams_new <- all_dams %>%
+  filter(country == "Argentina")  %>%
+  group_by(nearest_city) %>%
+  mutate(dams_count = n()) 
+  
+
+coordinates(all_dams_new) = c("decimal_degree_longitude","decimal_degree_latitude")
+crs.geo1 = CRS("+proj=longlat")
+proj4string(all_dams_new) = crs.geo1
+
+ar_agg = aggregate(x=all_dams_new["dams_count"],by = mymap, FUN = length)
+
+qpal = colorBin("Reds", ar_agg$dams_count, bins=4)
+
+leaflet(ar_agg) %>%
+  addPolygons(stroke = TRUE,opacity = 1,fillOpacity = 0.5, smoothFactor = 0.5,
+              color="black",fillColor = ~qpal(dams_count),weight = 1) %>%
+  addLegend(values=~dams_count,pal=qpal,title="Dams") %>%
+  addCircleMarkers(data = all_dams %>% filter(country == "Argentina"), lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
+
+unique(subnational$country_name)
+```
+```{r make_choro}
+make_choro <- function(file, country_name){
+  country_dams <- all_dams %>%
+    drop_na(decimal_degree_latitude) %>%
+  filter(country == country_name)  
+  
+  admin_list <- as.tibble(subnational %>%
+  filter(country_name == country_name) %>%
+  select(admin_name, population) %>%
+  rename(admin_new = admin_name) %>%
+    mutate(count = c(1:nrow(.))))
+  
+  mymap <- readOGR(file)
+  
+  mymap@data <- mymap@data %>% 
+  clean_names()
+
+ mymap@data <- mymap@data %>%
+  mutate(count = c(1:nrow(.))) %>%
+  left_join(admin_list, by = "count") %>%
+  mutate(admin_name = admin_new) %>%
+  select(-admin_new, -count)
+
+pal <- colorNumeric(palette = "viridis", domain = mymap@data$population, reverse = TRUE)
+  
+  leaflet(mymap) %>%
+  addPolygons(stroke = TRUE,opacity = 1,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~pal(population))   %>%
+addLegend(values=~population,pal=pal,title="Population") %>%
+  addCircleMarkers(data = country_dams, lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
+}
+
+path <- as.character(file_path %>% 
+                     filter(country_name == country_name) %>%
+                     select(file_path))
+
+  mymap <- readOGR(path)
+
+make_choro(path, "Zimbabwe")
+
+country_dams <- all_dams %>%
+    drop_na(decimal_degree_latitude) %>%
+  filter(country == "Zimbabwe")  
+  
+  admin_list <- as.tibble(subnational %>%
+  filter(country_name == "Zimbabwe") %>%
+  select(admin_name, population) %>%
+  rename(admin_new = admin_name) %>%
+    mutate(count = c(1:nrow(.))))
+  
+  mymap <- readOGR("raw_data/subnational/geometry/zimbabwe/geo1_zw2012.shp")
+  
+  mymap@data <- mymap@data %>% 
+  clean_names()
+
+ mymap@data <- mymap@data %>%
+  mutate(count = c(1:nrow(.))) %>%
+  left_join(admin_list, by = "count") %>%
+  mutate(admin_name = admin_new) %>%
+  select(-admin_new, -count)
+
+pal <- colorNumeric(palette = "viridis", domain = mymap@data$population, reverse = TRUE)
+  
+  leaflet(mymap) %>%
+  addPolygons(stroke = TRUE,opacity = 1,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~pal(population))   %>%
+addLegend(values=~population,pal=pal,title="Population") %>%
+  addCircleMarkers(data = country_dams, lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
+
+make_choro("raw_data/subnational/geometry/zimbabwe/geo1_zw2012.shp", "Zimbabwe")
+
+
+
+
+```
+
+
+```{r read excel}
+subnational <- read_excel("raw_data/subnational/clean_formatted_wb_subnational.xlsx")
+
+mymap <- readOGR("raw_data/subnational/geometry/argentina/geo1_ar2010.shp") 
+
+subnational
+
+admin_list <- as.tibble(subnational %>%
+  filter(country_name == "Argentina") %>%
+  select(admin_name, population) %>%
+  rename(admin_new = admin_name) %>%
+    mutate(count = c(1:nrow(.))))
+
+admin_list
+
+mymap@data <- mymap@data %>%
+  mutate(count = c(1:24)) %>%
+left_join(admin_list, by = "count") %>%
+  mutate(admin_name = admin_new) %>%
+  select(-admin_new, -count)
+
+ar_population <- subnational %>%
+  filter(country_name == "Argentina")
+
+mymap@data <- left_join(ar_population, mymap@data, by = "admin_name")
+
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = mymap@data$population,
+  reverse = TRUE
+)
+
+qpal = colorBin("Reds", mymap@data$population, bins=10)
+
+
+leaflet(mymap) %>%
+  addPolygons(stroke = TRUE,opacity = 1,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~pal(population))   %>%
+addLegend(values=~population,pal=pal,title="Population") %>%
+  addCircleMarkers(data = all_dams %>% filter(country == "Argentina") %>% drop_na(decimal_degree_latitude), lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
+```
+```{r nn}
+
+
+leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = all_dams, lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1) %>%
+  setView(lat = 0, lng = 0, zoom = 2)
+
+basins <- readOGR("raw_data/basins/Major_Basins_of_the_World.shp")
+
+gecon_v4 <- read_excel("raw_data/subnational/spatialecon-gecon-v4-xls/Original data/gecon-v4.xls", 
+    sheet = "Sheet1") %>%
+  clean_names() 
+
+# use predict get predicted number of dams 
+
+coordinates(gecon_v4) = c("longitude","lat")
+crs.geo1 = CRS("+proj=longlat")
+proj4string(gecon_v4) = crs.geo1
+proj4string(gecon_v4) <- proj4string(basins)
+grid_basins <- gIntersects(gecon_v4,basins,byid = TRUE)
+
+basins@data$average_pop <- apply(grid_basins,1,function(x) mean(gecon_v4@data$popgpw_2005_40[x]))
+basins@data$total_pop <- apply(grid_basins,1,function(x) sum(gecon_v4@data$popgpw_2005_40[x]))
+
+qpal = colorBin(c("yellow", "red"), basins@data$total_pop, bins=10)
+                
+                ###
+                
+all_dams_new <- all_dams %>%
+  group_by(major_basin) %>%
+  mutate(dams_count = n()) %>%
+  drop_na(decimal_degree_latitude) 
+
+coordinates(all_dams_new) = c("decimal_degree_longitude","decimal_degree_latitude")
+crs.geo1 = CRS("+proj=longlat")
+proj4string(all_dams_new) = crs.geo1
+
+basin_agg = aggregate(x=all_dams_new["dams_count"],by = basins, FUN = length)
+
+qpal = colorBin("Reds", basin_agg$dams_count, bins=6)
+
+
+leaflet(basin_agg) %>%
+  addTiles() %>%
+  addPolygons(stroke = TRUE,opacity = 0.5,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~qpal(dams_count)) %>%
+  addLegend(values=~dams_count,pal=qpal,title="Number of Dams and Reservoirs") %>% 
+  addCircleMarkers(data = all_dams %>%
+                     drop_na(decimal_degree_latitude, decimal_degree_longitude), 
+                   lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
+
+
+```
+dams_map <- left_join(mymap, all_dams, by = "country") 
+  
+
+coordinates(gecon_v4) = c("longitude","lat")
+crs.geo1 = CRS("+proj=longlat")
+proj4string(gecon_v4) = crs.geo1
+
+ar_agg = aggregate(x=gecon_v4["mer2005_40"],by=mymap, FUN = length)
+
+qpal = colorBin("Reds", ar_agg$mer2005_40, bins=5)
+
+leaflet(ar_agg) %>%
+  addPolygons(stroke = TRUE,opacity = 1,fillOpacity = 0.5, smoothFactor = 0.01,
+              color="black",fillColor = ~qpal(mer2005_40),weight = 0.1) %>%
+  addLegend(values=~mer2005_40,pal=qpal,title="people") %>%
+  addCircleMarkers(data = all_dams %>% filter(country == "Argentina"), lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
+
+pal <- colorNumeric(palette = "YlGnBu", domain = gecon_v4$popgpw_2005_40)
+  
+leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = gecon_v4, lat = ~ lat, lng = ~ longitude, radius = 0.1, color = ~ pal(gecon_v4$popgpw_2005_40)) %>%
+  setView(lat = -38.4161, lng = -63.6167, zoom = 4)
+  
+  
