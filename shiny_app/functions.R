@@ -24,7 +24,7 @@ all_wbstats <- read_rds("all_wbstats.rds")
 joined <- read_rds("joined.rds")
 subnational <- read_rds("subnational.rds")
 file_path <- read_rds("file_path.rds")
-gridded_data <- read_rds("gridded_data")
+gridded_data <- read_rds("gridded_data.rds")
 
 # Make function to retrieve file path. 
 

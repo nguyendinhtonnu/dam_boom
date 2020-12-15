@@ -183,7 +183,7 @@ gridded_data <- read_excel("raw_data/subnational/spatialecon-gecon-v4-xls/Origin
     sheet = "Sheet1") %>%
   clean_names()
 
-saveRDS(gridded_data, "shiny_app/gridded_data")
+saveRDS(gridded_data, "shiny_app/test.rds")
 
 ```
 ```{r file_path}
