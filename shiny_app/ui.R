@@ -19,6 +19,7 @@ library(wbstats)
 library(rstanarm)
 library(gt)
 library(gtsummary)
+library(broom.mixed)
 
   # Read in .rds
 
@@ -51,7 +52,7 @@ shinyUI(
                tabPanel(
                  "Introduction",
                  fluidPage(
-                   h2("The world's most vital resource"),
+                   h2("The Rush to Dam"),
                    p("Since antiquity, human beings have been interested in controlling their 
                      water resrouces. Over the course of thousands of years, different civilizations 
                      developed different ways of storing, stopping, or moving water, depending on their needs. 
@@ -141,7 +142,6 @@ shinyUI(
    fluidPage(
      fluidRow(
          h3("Modelling dams count based on GDP and population"),
-         leafletOutput("basin_map"),
         p("It's clear that you can't build a dam on dry land; the bare necessity is water. However, 
            not all river basins have the same number of dams. What socio-economic factors have an influence
            on the distribution of dams? Using population, GDP, agricultural land, and water availability data, 

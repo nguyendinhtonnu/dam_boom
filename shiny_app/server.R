@@ -21,6 +21,7 @@ library(wbstats)
 library(rstanarm)
 library(gt)
 library(gtsummary)
+library(broom.mixed)
 
 # Read in .rds
 
@@ -103,37 +104,7 @@ output$dam_country_plot <- renderPlot({
 
 ############THIRD PAGE############
 
-# Basins dams count. 
-
-source("functions.R")
-output$basin_map <- renderLeaflet({
-  
-  all_dams_new <- all_dams %>%
-    group_by(major_basin) %>%
-    mutate(dams_count = n()) %>%
-    drop_na(decimal_degree_latitude) 
-  
-  basins <- readOGR(path("World Basins"))
-  
-  coordinates(all_dams_new) = c("decimal_degree_longitude","decimal_degree_latitude")
-  crs.geo1 = CRS("+proj=longlat")
-  proj4string(all_dams_new) = crs.geo1
-  
-  basin_agg = aggregate(x=all_dams_new["dams_count"],by = basins, FUN = length)
-  
-  qpal = colorBin("Reds", basin_agg$dams_count, bins=6)
-  
-  # create leaflet that shades basin by the number of dams that's in it, based on coordinates.
-  
-  leaflet(basin_agg) %>%
-    addTiles() %>%
-    addPolygons(stroke = TRUE,opacity = 0.5,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~qpal(dams_count)) %>%
-    addLegend(values=~dams_count,pal=qpal,title="Number of Dams and Reservoirs") %>% 
-    addCircleMarkers(data = all_dams, 
-                     lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
-})
-
-
+  # Make model plots
 
 output$dam_predictions_1 <- renderPlot({
   joined_1 <- joined %>%
@@ -161,6 +132,8 @@ output$dam_predictions_1 <- renderPlot({
     coord_flip() + 
     theme_light() 
 })
+
+# Make model table
 
 output$table1 <- renderTable({
   joined_1 <- joined %>%
