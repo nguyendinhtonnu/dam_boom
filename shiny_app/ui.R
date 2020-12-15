@@ -17,6 +17,8 @@ library(rgdal)
 library(grid)
 library(wbstats)
 library(rstanarm)
+library(gt)
+library(gtsummary)
 
   # Read in .rds
 
@@ -140,26 +142,62 @@ shinyUI(
         p("It's clear that you can't build a dam on dry land; the bare necessity is water. However, 
            not all river basins have the same number of dams. What socio-economic factors have an influence
            on the distribution of dams? Using population, GDP, agricultural land, and water availability data, 
-           this model seeks to make some predictions.")),
+           this model seeks to make some predictions using data from 17 countries whose
+          shapefiles are found in the A Closer Look tab."), 
+        p("These two models seek to predict the relationship between dams, GDP 
+          and population. The table shows the results of the stan_glm model,
+          and the plot visualizes how these predictions compare with the reality.")
+        ),
      fluidRow(
        column(width = 7,
               plotOutput("dam_predictions_1")),
        column(width = 5, 
+              tableOutput("table1"),
               p("This model seeks to predict the number of dams based on the population 
-                of each country in each year. As you can see, it doesn't do a very good job
-                of predicting. This is probably because the model is too simple: population
-                is not a good predictor for dams count. A better predictor would probably 
-                be GDP?"))
+                of each country in each year. As the population increases, the model predicts that the number 
+                of dams constructed increases as well. Although it fails to predict the 
+                period of the most intense increase, the overall trend is correct. As the 
+                table shows, the median number of new dam in each country each year is 6.4.
+                The population has been divided by 10 million so that stan_glm would work better. 
+                The median population for each country each year since 1960 (is a terrible way 
+                to put it) is 1.6 million people, which is 0.16 * 10000000. The model 
+                predicts that for every increase of 1.6 million in the population, 
+                the number of dam would increase by 6.4"))
      ),
      fluidRow(
        column(width = 7,
               plotOutput("dam_predictions_2")),
        column(width = 5, 
-              p("It's still bizarre, but seems to be better than the last one. As we can see, the truth is
-                very random, and the model is not good at seeing the pattern that the surge
-                came at a particular point in time, and wasn't going to repeat itself."))
-     )
-   )
+              tableOutput("table2"),
+              p("This is the same stan_glm model that replaces population with gdp. Here, 
+                the median new dam put into operation each year for each country since 1960 
+                is 12. The GDP has been divided by 100 billion for ease of calculation.
+                The model predicts a negative relationship between Dams and GDP. It 
+                predicts that a decrease of 22 billion in total GDP is the median. 
+                One way to understand this model is that whenever a decrease in 
+                GDP occurs, countries become more tempted to build new dams in 
+                order to promote more development."))
+       ), 
+       fluidRow(
+         column(width = 6,
+                plotOutput("conclusion1")),
+         column(width = 6,
+                plotOutput("conclusion2"))
+         ),
+     fluidRow(
+         column(width = 5, 
+                h3("Did the hydraulic bargain pay off?"),
+                p("These two faceted plots side by side offers a visual comparison
+                  of the rate of dam construction and of the growth in GDP. For
+                  most of these countries, their dam building peaked before
+                  a GDP growth spurt, but the spurt, in most cases, is not 
+                  as intense as the the explosion in dams. In the case of 
+                  India and Argentina, this is true. For Turkey and Iran, however,
+                  an increase in GDP corresponds to increase in dam building. 
+                  The only countries where the bargain seems to have paid off
+                  are China, and South Africa. The rest barely shows any visible correlation."))
+             )
+ )
  ),
  ############################################
  
@@ -171,11 +209,8 @@ shinyUI(
        column(
          width = 5, 
          h3("Background"),
-         p("Every monsoon season, the central part of Vietnam suffers from heavy flooding which 
-         seems to increase in intensity every year. Critics of the government have cited 
-           the construction of dams up river to be a major culprit, as it changes the 
-           flow regime of rivers. This project is part of my wider research in understanding 
-           the relationship between people and water in Vietnam. \n
+         p("This project is part of my wider research in understanding 
+           the relationship between people and water in Vietnam.
            This project is mapping heavy, because I believe that a map is the superior illustration 
            and learning tool. The mapping of dams and reservoirs draws on the work of [SEDAC's 
            GRanD project](https://sedac.ciesin.columbia.edu/data/collection/grand-v1), 

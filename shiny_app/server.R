@@ -19,6 +19,8 @@ library(rgdal)
 library(grid)
 library(wbstats)
 library(rstanarm)
+library(gt)
+library(gtsummary)
 
 # Read in .rds
 
@@ -132,18 +134,23 @@ output$basin_map <- renderLeaflet({
 
 
 output$dam_predictions_1 <- renderPlot({
-  joined <- joined %>%
+  joined_1 <- joined %>%
     filter(country %in% country_names) %>%
-    drop_na(pop) 
+    drop_na(pop) %>%
+    mutate(pop = as.numeric(pop)) %>%
+    
+    # divide by 10 million for ease of calculation
+    
+    mutate(pop = pop/10000000)
   
-  dam_model <- stan_glm(data = joined, 
+  dam_model <- stan_glm(data = joined_1, 
                         formula = dams_count ~ pop, 
                         family = gaussian(), 
                         refresh = 0)
+
+  alo_1 <- tibble(truth = joined_1$dams_count, forecast = predict(dam_model), year = joined_1$year)
   
-  alo <- tibble(truth = joined$dams_count, forecast = predict(dam_model), year = joined$year)
-  
-  alo %>%
+  alo_1 %>%
     pivot_longer(cols = c(truth, forecast),
                  names_to = "source", 
                  values_to = "value") %>%
@@ -153,19 +160,36 @@ output$dam_predictions_1 <- renderPlot({
     theme_light() 
 })
 
+output$table1 <- renderTable({
+  tbl_regression(dam_model, intercept = TRUE) %>%
+    as_gt() %>%
+    
+    #adding labels
+    
+    tab_header(title = "Regression of Yearly Dams Count", 
+               subtitle = "The Effect of Population on Dams Count") %>%
+    tab_source_note(md("Source: SEDAC GranD"))
+  
+})
+
 output$dam_predictions_2 <- renderPlot({
-  joined <- joined %>%
+  joined_2 <- joined %>%
     filter(country %in% country_names) %>%
-    drop_na(gdp) 
+    drop_na(gdp) %>%
+    mutate(gdp = as.numeric(gdp)) %>%
+    
+    # gdp divided by 100 billion for ease of calculation
+    
+    mutate(gdp = gdp/100000000000)
   
-  dam_model <- stan_glm(data = joined, 
-                        formula = dams_count ~ gdp, 
-                        family = gaussian(), 
-                        refresh = 0)
+  dam_model_2 <- stan_glm(data = joined_2, 
+                          formula = dams_count ~ gdp, 
+                          family = gaussian(), 
+                          refresh = 0)
   
-  alo <- tibble(truth = joined$dams_count, forecast = predict(dam_model), year = joined$year)
+  alo_2 <- tibble(truth = joined_2$dams_count, forecast = predict(dam_model_2), year = joined_2$year)
   
-  alo %>%
+  alo_2 %>%
     pivot_longer(cols = c(truth, forecast),
                  names_to = "source", 
                  values_to = "value") %>%
@@ -173,6 +197,42 @@ output$dam_predictions_2 <- renderPlot({
     geom_point(size = 0.3) + 
     coord_flip() + 
     theme_light() 
+})
+
+output$table2 <- renderTable({
+  tbl_regression(dam_model_2, intercept = TRUE) %>%
+    as_gt() %>%
+    
+    #adding labels
+    
+    tab_header(title = "Regression of Yearly New Dams Count", 
+               subtitle = "The Effect of GDP on Dams Count") %>%
+    tab_source_note(md("Source: SEDAC GranD"))
+  
+})
+
+
+output$conclusion1 <- renderPlot({
+  joined %>%
+    filter(country %in% country_names) %>%
+    drop_na(gdp) %>%
+    mutate(gdp = as.numeric(gdp)) %>%
+    ggplot(aes(year, gdp)) + 
+    geom_point(size = 0.1) + 
+    facet_wrap ( ~ country) + 
+    geom_line(colour = "blue") + 
+    theme_light()
+})
+
+output$conclusion2 <- renderPlot({
+  joined %>%
+    filter(country %in% country_names) %>%
+    filter(year > 1960) %>%
+    ggplot(aes(year, dams_count)) + 
+    geom_point(size = 0.1) + 
+    facet_wrap ( ~ country) + 
+    geom_line(colour = "blue") + 
+    theme_light()
 })
 
 }
