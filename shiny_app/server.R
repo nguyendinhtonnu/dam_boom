@@ -1,6 +1,8 @@
 ###########PREP############
   
-  # Load libraries.
+
+# Load libraries
+
 library(shiny)
 library(shinythemes)
 library(tidyverse)
@@ -16,18 +18,29 @@ library(ggplot2)
 library(rgdal)
 library(grid)
 library(wbstats)
+library(rstanarm)
 
-  # Read in data. 
+# Read in .rds
 
-all_dams <- readRDS("all_dams.rds")
+all_dams <- readRDS("all_dams.rds") %>%
+  drop_na(year, reservoir_area_km2)
 all_dams_about <- readRDS("all_dams_about.rds") 
 all_wbstats <- readRDS("all_wbstats.rds")
 file_path <- readRDS("file_path.rds")
+joined <- readRDS("joined.rds")
+gridded_data <- readRDS("gridded_data.rds")
+
+# Create options 
+
+dam_years <- as.numeric(unique(all_dams$year)) 
+country_names <- as.character(unique(file_path$country_name))
+all_countries <- c("All", as.character(unique(all_dams$country)))
+subnational <- c("Population", "PPP", "MER")
 
 server <- function(input, output) {
 ###########FIRST PAGE#############
   
-  #Dam numbers by region and by country
+  #Dam numbers by region 
   
   output$world_increase <- renderPlot({
     all_dams_about %>% 
@@ -38,38 +51,132 @@ server <- function(input, output) {
       geom_bar(position = "stack") + 
       theme(axis.text.x = element_text(angle = 90)) + 
       scale_x_discrete(breaks = c(seq(from = 0, to = 2019, by = 50))) + 
+      scale_fill_discrete(name = "Regions") +
       theme_light() +
       theme(axis.text.x = element_text(angle = 90)) + 
-      labs(title = "Number of dams and reservoirs in operation by each year", 
+      labs(title = "Number of dams and reservoirs in operation over time", 
                                           x = "Year", 
                                           y = "Number of dams",
                                           caption = "Source: GrandD v1.3") 
                                         })
   
-  output$basin_map <- renderLeaflet({
-    all_dams_new <- all_dams %>%
-      group_by(major_basin) %>%
-      mutate(dams_count = n()) %>%
-      drop_na(decimal_degree_latitude) 
-    
-    coordinates(all_dams_new) = c("decimal_degree_longitude","decimal_degree_latitude")
-    crs.geo1 = CRS("+proj=longlat")
-    proj4string(all_dams_new) = crs.geo1
-    
-    basin_agg = aggregate(x=all_dams_new["dams_count"],by = basins, FUN = length)
-    
-    qpal = colorBin("Reds", basin_agg$dams_count, bins=6)
-    
-    
-    leaflet(basin_agg) %>%
-      addTiles() %>%
-      addPolygons(stroke = TRUE,opacity = 0.5,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~qpal(dams_count)) %>%
-      addLegend(values=~dams_count,pal=qpal,title="Number of Dams and Reservoirs") %>% 
-      addCircleMarkers(data = all_dams %>%
-                         drop_na(decimal_degree_latitude, decimal_degree_longitude), 
-                       lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
-  })
-}
+# Reservoir size plot using resertvoir_size function
   
+  source("functions.R")
+  output$reservoir <- renderPlot({
+    all_dams %>%
+      drop_na(reservoir_area_km2) %>%
+      filter(country %in% as.character(input$select_country)) %>%
+    reservoir_size(., input$dam_years, input$reservoir_size)
+  })
+
+
+  ############SECOND PAGE############
+  
+  source("functions.R")
+output$country_map <- renderLeaflet({
+  
+  path(input$country_name)
+  coordinates(gridded_data) = c("longitude","lat")
+ make_map_pop(input$country_name)
+ 
+})
+
+output$dam_country_plot <- renderPlot({
+  all_dams %>%
+    filter(country == input$country_name) %>%
+    ggplot(aes(x = year)) + 
+    geom_bar() +
+    theme(axis.text.x = element_text(angle = 90)) + 
+    labs(title = "Total number of new dams in selected country each year", 
+         x = "Year", 
+         y = "Number of dams",
+         caption = "Source: globaldamwatch.org") +
+    theme_classic()
+})
+
+
+############THIRD PAGE############
+
+# Basins dams count. 
+
+source("functions.R")
+output$basin_map <- renderLeaflet({
+  
+  all_dams_new <- all_dams %>%
+    group_by(major_basin) %>%
+    mutate(dams_count = n()) %>%
+    drop_na(decimal_degree_latitude) 
+  
+  basins <- readOGR(path("World Basins"))
+  
+  coordinates(all_dams_new) = c("decimal_degree_longitude","decimal_degree_latitude")
+  crs.geo1 = CRS("+proj=longlat")
+  proj4string(all_dams_new) = crs.geo1
+  
+  basin_agg = aggregate(x=all_dams_new["dams_count"],by = basins, FUN = length)
+  
+  qpal = colorBin("Reds", basin_agg$dams_count, bins=6)
+  
+  # create leaflet that shades basin by the number of dams that's in it, based on coordinates.
+  
+  leaflet(basin_agg) %>%
+    addTiles() %>%
+    addPolygons(stroke = TRUE,opacity = 0.5,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~qpal(dams_count)) %>%
+    addLegend(values=~dams_count,pal=qpal,title="Number of Dams and Reservoirs") %>% 
+    addCircleMarkers(data = all_dams %>%
+                       drop_na(decimal_degree_latitude, decimal_degree_longitude), 
+                     lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
+})
+
+
+
+output$dam_predictions_1 <- renderPlot({
+  joined <- joined %>%
+    filter(country %in% country_names) %>%
+    drop_na(pop) 
+  
+  dam_model <- stan_glm(data = joined, 
+                        formula = dams_count ~ pop, 
+                        family = gaussian(), 
+                        refresh = 0)
+  
+  alo <- tibble(truth = joined$dams_count, forecast = predict(dam_model), year = joined$year)
+  
+  alo %>%
+    pivot_longer(cols = c(truth, forecast),
+                 names_to = "source", 
+                 values_to = "value") %>%
+    ggplot(aes(x = value, y = year, colour = source)) + 
+    geom_point(size = 0.3) + 
+    coord_flip() + 
+    theme_light() 
+})
+
+output$dam_predictions_2 <- renderPlot({
+  joined <- joined %>%
+    filter(country %in% country_names) %>%
+    drop_na(gdp) 
+  
+  dam_model <- stan_glm(data = joined, 
+                        formula = dams_count ~ gdp, 
+                        family = gaussian(), 
+                        refresh = 0)
+  
+  alo <- tibble(truth = joined$dams_count, forecast = predict(dam_model), year = joined$year)
+  
+  alo %>%
+    pivot_longer(cols = c(truth, forecast),
+                 names_to = "source", 
+                 values_to = "value") %>%
+    ggplot(aes(x = value, y = year, colour = source)) + 
+    geom_point(size = 0.3) + 
+    coord_flip() + 
+    theme_light() 
+})
+
+}
+
+
   
   

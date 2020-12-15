@@ -22,6 +22,7 @@ all_wbstats <- read_rds("shiny_app/all_wbstats.rds")
 joined <- read_rds("shiny_app/joined.rds")
 subnational <- read_rds("shiny_app/subnational.rds")
 file_path <- read_rds("shiny_app/file_path.rds")
+joined <- readRDS("joined.rds")
 
 # Make function to retrieve file path. 
 
@@ -32,7 +33,7 @@ path <- function(country){
   as.character(path)}
 # Make a function that creates a choropleth map. 
 
-make_choro <- function(country_name){
+make_population_choro <- function(country_name){
   country_dams <- all_dams %>%
     drop_na(decimal_degree_latitude) %>%
     filter(country == country_name)  
@@ -65,4 +66,31 @@ make_choro <- function(country_name){
 
 # Test functions. 
 
-make_choro("Zimbabwe")
+make_population_choro("Zimbabwe") 
+
+# Prepare for basins map 
+
+basins <- readOGR("raw_data/basins/Major_Basins_of_the_World.shp")
+
+gecon_v4 <- read_excel("raw_data/subnational/spatialecon-gecon-v4-xls/Original data/gecon-v4.xls", 
+                       sheet = "Sheet1") %>%
+  clean_names() 
+
+coordinates(gecon_v4) = c("longitude","lat")
+crs.geo1 = CRS("+proj=longlat")
+proj4string(gecon_v4) = crs.geo1
+proj4string(gecon_v4) <- proj4string(basins)
+grid_basins <- gIntersects(gecon_v4,basins,byid = TRUE)
+
+basins@data$average_pop <- apply(grid_basins,1,function(x) mean(gecon_v4@data$popgpw_2005_40[x]))
+basins@data$total_pop <- apply(grid_basins,1,function(x) sum(gecon_v4@data$popgpw_2005_40[x]))
+
+qpal = colorBin(c("yellow", "red"), basins@data$total_pop, bins=10)
+
+
+
+
+
+
+
+

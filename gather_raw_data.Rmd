@@ -59,12 +59,14 @@ clean_dams <- function(df){
   left_join(df_2, by = "name_of_dam")
 }
 
+# Final function
+
 import_dams <- function(file, region){
   read_dams(file, region) %>%
   clean_dams()
-} # Final function
+} 
 
- # Import GRandD data for each world region. 
+ # Import GRandD data for each world region using import_dams()
 
 south_america <- import_dams("raw_data/dams/soamer_aquastat.xlsx", "South America")
 central_america <- import_dams("raw_data/dams/cenamer_aquastat.xlsx", "Central America")
@@ -81,7 +83,7 @@ se_asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "South East Asia") 
   filter(!country %in% c("China", "Japan", "Korea", "Democratic People's Republic of Korea", "Republic of Korea", "India", "Bangladesh", "Pakistan", "Sri Lanka", "Bhutan", "Nepal", "Mongolia"))
 oceania <- import_dams("raw_data/dams/oceania_aquastat.xlsx", "Oceania")
 
-  # Simplified for about page
+  # Import 2 datasets implified for about page
 
 asia <- import_dams("raw_data/dams/seasia_aquastat.xlsx", "Asia") %>%
   bind_rows(central_asia) %>%
@@ -96,6 +98,8 @@ all_dams <- bind_rows(south_america, central_america, north_america, europe, afr
   mutate(year = as.numeric(year)) %>%
   rename(code = iso_alpha_3)
 
+#for about page
+
 all_dams_about <- bind_rows(central_south, north_america, europe, africa, middle_east,
                             asia, oceania)
 
@@ -104,6 +108,8 @@ saveRDS(all_dams_about, "shiny_app/all_dams_about.rds")
 ```
 
 ```{r wbstats}
+
+# Create function for importing wb data from wbstats package. 
 
 wb_import <- function(indicator, name){
   wb_data(indicator = indicator, start_date = 1900, end_date = 2015) %>%
@@ -150,8 +156,13 @@ all_wbstats <- list(pop, gdp, safe_water, water_withdraw, ag_land, ir_land) %>%
 saveRDS(all_wbstats, "shiny_app/all_wbstats.rds")
 ```
 ```{r read_other}
+
+# subnational level population data
+
 subnational <- read_excel("raw_data/subnational/clean_formatted_wb_subnational.xlsx")
 saveRDS(subnational, "shiny_app/subnational.rds")
+
+# Disaster data from Eem-dat 
 
 em_dat <- read_excel("raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
                        skip = 6) %>%
@@ -165,13 +176,25 @@ em_dat <- read_excel("raw_data/emdat_public_2020_11_01_query_uid-MSWGVQ.xlsx",
 
 em_dat <- em_dat[!duplicated(em_dat), ]
 
+
+# gridded population, gdp, ppp data from g-econ
+
+gridded_data <- read_excel("raw_data/subnational/spatialecon-gecon-v4-xls/Original data/gecon-v4.xls", 
+    sheet = "Sheet1") %>%
+  clean_names()
+
+saveRDS(gridded_data, "shiny_app/gridded_data")
+
 ```
 ```{r file_path}
-file_path <- tibble(country_name = c("Argentina", "Bolivia", "Brazil", "Burkina Faso",
-                                    "China", "Cuba", "India", "Indonesia", 
-                                    "Iran", "Laos", "Mexico", "Romania", "Russia", 
-                                    "South Africa", "Turkey", "Uruguay", 
-                                    "Zimbabwe"),
+
+# create file path for all shape files
+
+file_path <- tibble(country_name = c("Argentina", "Bolivia (Plurinational State of)", "Brazil", 
+                                     "Burkina Faso", "China", "Cuba", "India", "Indonesia", 
+                                "Iran (Islamic Republic of)", "Lao People's Democratic Republic", "Mexico", 
+                                "Romania", "Russian Federation","South Africa", "Turkey", "Uruguay", 
+                                    "Zimbabwe", "World Basins"),
                    file_path = c("raw_data/subnational/geometry/argentina/geo1_ar2010.shp",
                    "raw_data/subnational/geometry/bolivia/geo1_bo2012.shp",
                    "raw_data/subnational/geometry/brazil/geo1_br2010.shp",
@@ -188,7 +211,8 @@ file_path <- tibble(country_name = c("Argentina", "Bolivia", "Brazil", "Burkina 
                    "raw_data/subnational/geometry/south_africa/geo1_za2016.shp",
                    "raw_data/subnational/geometry/turkey/geo1_tr2000.shp",
                    "raw_data/subnational/geometry/uruguay/geo1_uy2011.shp",
-                   "raw_data/subnational/geometry/zimbabwe/geo1_zw2012.shp"
+                   "raw_data/subnational/geometry/zimbabwe/geo1_zw2012.shp",
+                   "raw_data/basins/Major_Basins_of_the_World.shp"
                    ))
   
 saveRDS(file_path, "shiny_app/file_path.rds")
@@ -196,10 +220,13 @@ saveRDS(file_path, "shiny_app/file_path.rds")
 
 ```
 ```{r join}
+
+  # join dataframes.
+
 joined <- all_dams %>%
   group_by(code, year) %>%
   mutate(dams_count = n()) %>%
-  select(code, year, dams_count) 
+  select(code, year, dams_count, country) 
 
 joined <- joined[!duplicated(joined), ]
 
