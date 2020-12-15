@@ -28,7 +28,10 @@ all_dams_about <- readRDS("all_dams_about.rds")
 all_wbstats <- readRDS("all_wbstats.rds")
 file_path <- readRDS("file_path.rds")
 joined <- readRDS("joined.rds")
-gridded_data <- readRDS("gridded_data.rds")
+gridded_data <- read_excel("raw_data/subnational/spatialecon-gecon-v4-xls/Original data/gecon-v4.xls", 
+                           sheet = "Sheet1") %>%
+  clean_names()
+
 
   # Create options 
 

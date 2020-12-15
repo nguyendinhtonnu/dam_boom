@@ -30,7 +30,10 @@ all_dams_about <- readRDS("all_dams_about.rds")
 all_wbstats <- readRDS("all_wbstats.rds")
 file_path <- readRDS("file_path.rds")
 joined <- readRDS("joined.rds")
-gridded_data <- readRDS("gridded_data.rds")
+gridded_data <- read_excel("raw_data/subnational/spatialecon-gecon-v4-xls/Original data/gecon-v4.xls", 
+                           sheet = "Sheet1") %>%
+  clean_names()
+
 
 # Create options 
 
@@ -126,8 +129,7 @@ output$basin_map <- renderLeaflet({
     addTiles() %>%
     addPolygons(stroke = TRUE,opacity = 0.5,fillOpacity = 0.5, smoothFactor = 0.5, weight = 1, fillColor = ~qpal(dams_count)) %>%
     addLegend(values=~dams_count,pal=qpal,title="Number of Dams and Reservoirs") %>% 
-    addCircleMarkers(data = all_dams %>%
-                       drop_na(decimal_degree_latitude, decimal_degree_longitude), 
+    addCircleMarkers(data = all_dams, 
                      lat = ~ decimal_degree_latitude, lng = ~ decimal_degree_longitude, radius = 0.1)
 })
 
@@ -161,11 +163,23 @@ output$dam_predictions_1 <- renderPlot({
 })
 
 output$table1 <- renderTable({
+  joined_1 <- joined %>%
+    filter(country %in% country_names) %>%
+    drop_na(pop) %>%
+    mutate(pop = as.numeric(pop)) %>%
+    
+    # divide by 10 million for ease of calculation
+    
+    mutate(pop = pop/10000000)
+  
+  
+  dam_model <- stan_glm(data = joined_1, 
+                        formula = dams_count ~ pop, 
+                        family = gaussian(), 
+                        refresh = 0)
+  
   tbl_regression(dam_model, intercept = TRUE) %>%
     as_gt() %>%
-    
-    #adding labels
-    
     tab_header(title = "Regression of Yearly Dams Count", 
                subtitle = "The Effect of Population on Dams Count") %>%
     tab_source_note(md("Source: SEDAC GranD"))
@@ -200,11 +214,22 @@ output$dam_predictions_2 <- renderPlot({
 })
 
 output$table2 <- renderTable({
+  joined_2 <- joined %>%
+    filter(country %in% country_names) %>%
+    drop_na(gdp) %>%
+    mutate(gdp = as.numeric(gdp)) %>%
+    
+    # gdp divided by 100 billion for ease of calculation
+    
+    mutate(gdp = gdp/100000000000)
+  
+  dam_model_2 <- stan_glm(data = joined_2, 
+                          formula = dams_count ~ gdp, 
+                          family = gaussian(), 
+                          refresh = 0)
+  
   tbl_regression(dam_model_2, intercept = TRUE) %>%
     as_gt() %>%
-    
-    #adding labels
-    
     tab_header(title = "Regression of Yearly New Dams Count", 
                subtitle = "The Effect of GDP on Dams Count") %>%
     tab_source_note(md("Source: SEDAC GranD"))
